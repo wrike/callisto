@@ -1,0 +1,143 @@
+# Simple K8s-manifest for callisto smoke tests
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  namespace: default
+  name: callisto
+rules:
+- apiGroups:
+  - "*"
+  resources:
+  - "*"
+  verbs:
+  - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: callisto
+  namespace: default
+roleRef:
+  kind: Role
+  name: callisto
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  namespace: default
+  name: default
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: callisto-conf
+data:
+  callisto.conf: |
+    # Simple nginx config
+    upstream callisto {
+      server 127.0.0.1:8080;
+    }
+    server {
+      listen 80 default_server;
+      resolver kube-dns.kube-system.svc.cluster.local;
+
+      proxy_connect_timeout       600;
+      proxy_send_timeout          600;
+      proxy_read_timeout          600;
+      send_timeout                600;
+
+      location ~ /session/(?<pod_name>browser-[a-z0-9]+)-(?<pod_ip>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)-(?<session_id>[a-z0-9-]+)/(?<tests_request>.+) {
+        proxy_http_version 1.1;
+        proxy_pass http://$pod_ip:4444/session/$session_id/$tests_request;
+      }
+      location ~ /session/(?<pod_name>browser-[a-z0-9]+)-(?<pod_ip>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)-(?<session_id>[a-z0-9-]+) {
+        proxy_http_version 1.1;
+        proxy_pass http://callisto/api/v1/session/$pod_name;
+      }
+      location /session {
+        proxy_http_version 1.1;
+        proxy_pass http://callisto/api/v1/session;
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: browser-pod-manifest
+data:
+  pod_manifest.yaml: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      generateName: 'browser-'
+    spec:
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 0
+      containers:
+        - image: selenoid/vnc:chrome_70.0
+          name: browser
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1024Mi
+          readinessProbe:
+            httpGet:
+              path: '/status'
+              port: 4444
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          volumeMounts:
+            - mountPath: '/dev/shm'
+              name: dshm
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: callisto
+spec:
+  replicas: 1
+  minReadySeconds: 15
+  selector:
+    matchLabels:
+      app: callisto
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: callisto
+    spec:
+      containers:
+      - image: {{CALLISTO_IMAGE}}  # template value
+        imagePullPolicy: Never
+        name: callisto
+        ports:
+          - containerPort: 8080
+        env:
+          - name: POD_IMAGE
+            value: "selenoid/vnc:chrome_79.0"
+          - name: LOG_LEVEL
+            value: "DEBUG"
+        volumeMounts:
+          - name: browser-manifest
+            mountPath: /etc/callisto
+      - image: nginx:1.16.0-alpine
+        name: nginx
+        ports:
+          - containerPort: 80
+        volumeMounts:
+          - name: callisto-config
+            mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: callisto-config
+          configMap:
+            name: callisto-conf
+        - name: browser-manifest
+          configMap:
+            name: browser-pod-manifest

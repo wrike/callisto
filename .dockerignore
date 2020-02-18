@@ -1,0 +1,7 @@
+**/__pycache__
+**/*.pyc
+.git
+.idea
+.mypy_cache
+.pytest_cache
+.coverage

@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "callisto"
+version = "1.0.0"
+description = "A service to manage browser pods in k8s"
+authors = ["Wrike DevOps team <devops+oss@team.wrike.com>"]
+license = "MIT"
+repository = "https://github.com/wrike/callisto"
+keywords = ['web', 'service', 'ci', 'automation']
+exclude = ["tests", "*.tests"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+aiohttp = "^3.5.4"
+aiodns = "^2.0.0"
+aiojobs = "^0.2.2"
+kubernetes_asyncio = "^10.0.1"
+typing-extensions = "^3.7.4"
+Click = "^7.0"
+prometheus-client = "^0.7.1"
+sentry-sdk = "^0.14.1"
+tenacity = "^6.0.0"
+graypy = "^2.1.0"
+pyyaml = "^5.2"
+
+[tool.poetry.dev-dependencies]
+pytest = ">=5.3.2"
+pytest-asyncio = ">=0.10.0"
+pytest-cov = ">=2.8.1"
+flake8 = ">=3.7.9"
+mypy = ">=0.750"
+isort = ">=4.3.21"
+toml = ">=0.10"
+selenium = "==3.141.0"
+
+[tool.isort]
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+lines_after_imports = 2
+force_grid_wrap = 3
+forced_separate = ["callisto"]
+add_imports = "from __future__ import annotations"
+
+[build-system]
+requires = ["poetry>=1.0.0"]
+build-backend = "poetry.masonry.api"

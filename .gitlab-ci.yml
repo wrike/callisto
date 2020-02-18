@@ -1,0 +1,147 @@
+variables:
+  DOCKER_DRIVER: overlay2
+  LATEST_VER: '${CI_REGISTRY_IMAGE}:latest'
+  COMMIT_VER: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+
+before_script:
+  - set -u
+  - date
+
+after_script:
+  - date
+
+stages:
+  - run_checks
+  - build_image
+  - post_build
+  - publish
+
+run_checks:
+  image: python:3.7.6-alpine3.11
+  stage: run_checks
+  coverage: '/^TOTAL\s+\d+\s+\d+\s+(\d+%)$/'
+  cache:
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - .venv/
+  script:
+    - apk add --no-cache make curl gcc musl-dev libffi-dev
+    - make prepare
+    - source .venv/bin/activate
+    - make lint
+    - make tests
+
+build_image:
+  image: docker:18.09.7-git
+  stage: build_image
+  only:
+    - master
+  variables:
+    ENVIRONMENT: 'prod'
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker build -t $LATEST_VER --build-arg ENVIRONMENT="$ENVIRONMENT" .
+    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
+    - docker tag $LATEST_VER ${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
+    - docker push $LATEST_VER
+    - |
+      echo docker push ${CI_REGISTRY_IMAGE}:$VERSION-${CI_PIPELINE_IID}
+      docker push ${CI_REGISTRY_IMAGE}:$VERSION-${CI_PIPELINE_IID}
+
+.smoke_tests:
+  image: docker:18.09.7-git
+  services:
+    - docker:18.09.7-dind
+  variables:
+    KUBECTL: v1.15.0
+    KIND: v0.7.0
+    DOCKER_HOST: tcp://docker:2375/  # for dind
+  stage: post_build
+  script:
+    # Download kind and kubectl
+    - apk add --update-cache --upgrade curl jq make
+    - curl https://github.com/kubernetes-sigs/kind/releases/download/${KIND}/kind-linux-amd64 -sLfSo /usr/local/bin/kind && chmod +x /usr/local/bin/kind
+    - curl https://storage.googleapis.com/kubernetes-release/release/${KUBECTL}/bin/linux/amd64/kubectl -sLfSo /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl
+
+    # Run kind cluster
+    - kind create cluster --config=tests/smoke/kind-config.yaml
+    - sed -i -E -e 's/localhost|0\.0\.0\.0/docker/g' "${HOME}/.kube/config"
+    - date
+
+    # Run callisto in kind
+    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
+    - CALLISTO_IMAGE=${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
+    - kind load docker-image $CALLISTO_IMAGE
+    - cat tests/smoke/callisto-kind.yaml | sed "s|{{CALLISTO_IMAGE}}|${CALLISTO_IMAGE}|g" | kubectl apply -f -
+    - while [[ "$(kubectl get deployments callisto -o 'jsonpath={..status.readyReplicas}')" != "1" ]]; do echo "waiting for callisto..." && sleep 10; done
+    - kubectl port-forward deployment/callisto 8080:80 > /dev/null &2>1 &
+    - sleep 5  # waiting port-forward
+    - kubectl get all
+    - date
+
+    # Run smoke tests
+    - apk add -U python3 python3-dev libffi-dev build-base gcc
+    - make prepare
+    - . .venv/bin/activate
+    - make tests_smoke || (kubectl logs deployment/callisto --all-containers=true; false)
+    - kubectl get all
+
+smoke_tests:
+  extends: .smoke_tests
+  only:
+    - branches
+  except:
+    - master
+  variables:
+    ENVIRONMENT: 'dev'
+  before_script:
+    - set -u
+    - date
+
+    # build image
+    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
+    - CALLISTO_IMAGE=${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
+    - docker build -t $CALLISTO_IMAGE --build-arg ENVIRONMENT="$ENVIRONMENT" .
+    - date
+
+smoke_tests_master:
+  extends: .smoke_tests
+  only:
+    - master
+  before_script:
+    - set -u
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - date
+
+    # download image
+    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
+    - CALLISTO_IMAGE=${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
+    - docker pull $CALLISTO_IMAGE
+    - date
+
+publish_image_to_gcr:
+  image: docker:18.09.7-git
+  stage: publish
+  only:
+    - master
+  script:
+    # install google-cloud-sdk
+    - apk add --update-cache --upgrade curl python2
+    - curl -sLfS https://storage.googleapis.com/cloud-sdk-release/google-cloud-sdk-254.0.0-linux-x86_64.tar.gz | tar -C / -zxf -
+    - sh /google-cloud-sdk/install.sh --quiet
+
+    # download image
+    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
+    - LOCAL_CALLISTO_IMAGE=${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker pull $LOCAL_CALLISTO_IMAGE
+
+    # push to remote registry
+    - docker tag $LOCAL_CALLISTO_IMAGE $REMOTE_CALLISTO_IMAGE
+    - docker tag $LOCAL_CALLISTO_IMAGE $REMOTE_CALLISTO_IMAGE:${VERSION}-${CI_PIPELINE_IID}
+    - echo "$GCR_PUSH_SA" > /tmp/gcr-push-sa.json
+    - /google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=/tmp/gcr-push-sa.json
+    - /google-cloud-sdk/bin/gcloud docker -- push $REMOTE_CALLISTO_IMAGE
+    - |
+      echo /google-cloud-sdk/bin/gcloud docker -- push $REMOTE_CALLISTO_IMAGE:${VERSION}-${CI_PIPELINE_IID}
+      /google-cloud-sdk/bin/gcloud docker -- push $REMOTE_CALLISTO_IMAGE:${VERSION}-${CI_PIPELINE_IID}
