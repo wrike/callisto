@@ -21,7 +21,7 @@ Nginx and Callisto must be running inside a Kubernetes cluster in order to acces
 * kubectl and helm installed and pointing to the cluster
 
 ## Installation
-See README.md in helm chart to get started
+See [helm chart](https://github.com/wrike/callisto-chart) to get started.
 
 ## Configuration
 
