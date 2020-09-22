@@ -27,7 +27,7 @@ async def test_metrics(run_test_server, aiohttp_test_client):
         # TYPE callisto_stage_steps_duration histogram
     """).lstrip()
 
-    resp = await client.get(f'/metrics')
+    resp = await client.get('/metrics')
     text = await resp.text()
 
     assert resp.status == web.HTTPOk.status_code

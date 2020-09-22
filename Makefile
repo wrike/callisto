@@ -3,7 +3,7 @@ TESTS_PATH := tests
 PYTHON_BIN := python3
 VENV_NAME := .venv
 ENVIRONMENT = dev
-POETRY_VERSION := 1.0.2
+POETRY_VERSION := 1.0.9
 
 .PHONY: help prepare tests tests_smoke lint pyfmt
 help:
@@ -36,7 +36,7 @@ tests_smoke:
 lint:
 	${PYTHON_BIN} -m mypy ${PYTHON_MODULE}
 	${PYTHON_BIN} -m flake8 --max-line-length=120 ${PYTHON_MODULE} ${TESTS_PATH}
-	${PYTHON_BIN} -m isort --diff --check-only --recursive ${PYTHON_MODULE} ${TESTS_PATH}
+	${PYTHON_BIN} -m isort --diff --check-only ${PYTHON_MODULE} ${TESTS_PATH}
 
 pyfmt:
-	${PYTHON_BIN} -m isort --recursive ${PYTHON_MODULE} ${TESTS_PATH}
+	${PYTHON_BIN} -m isort ${PYTHON_MODULE} ${TESTS_PATH}

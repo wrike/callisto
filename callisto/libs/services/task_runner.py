@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import typing as t
 
-import tenacity as tnc  # type: ignore
+import tenacity as tnc
 from aiojobs import Scheduler  # type: ignore
 
 from .log import logger
@@ -24,7 +24,7 @@ class TaskRunnerService:
                              *args: t.Any,
                              **kwargs: t.Any) -> T:
 
-        return await tnc.AsyncRetrying(
+        return await tnc.AsyncRetrying(  # type: ignore
             wait=tnc.wait_fixed(pause),
             stop=tnc.stop_after_attempt(tries),
             retry=tnc.retry_if_exception_type(retry_exc),

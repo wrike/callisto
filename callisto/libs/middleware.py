@@ -13,8 +13,9 @@ from .services.log import logger
 
 
 if t.TYPE_CHECKING:
-    from aiohttp.web import Request, Response
     from contextvars import ContextVar
+
+    from aiohttp.web import Request, Response
 
     AiohttpHandler = t.Callable[[Request], t.Awaitable[Response]]
     MiddlewereHandler = t.Callable[[Request, AiohttpHandler], t.Awaitable[Response]]

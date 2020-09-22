@@ -24,7 +24,7 @@ async def test_create_session(future, run_test_server, aiohttp_test_client, k8s_
         session_created_response
     ))
 
-    resp = await client.post(f'/api/v1/session', json=webdriver_request)
+    resp = await client.post('/api/v1/session', json=webdriver_request)
 
     assert resp.status == web.HTTPOk.status_code
     assert len(app[consts.SESSION_USE_CASE_KEY].state_service.sessions) == 1
@@ -42,7 +42,7 @@ async def test_return_error_on_error_during_pod_creation(run_test_server, aiohtt
 
     app[consts.SESSION_USE_CASE_KEY].k8s_service.create_pod = mock.Mock(side_effect=ApiException())
 
-    resp = await client.post(f'/api/v1/session', json=webdriver_request)
+    resp = await client.post('/api/v1/session', json=webdriver_request)
 
     assert resp.status == web.HTTPInternalServerError.status_code
     assert len(app[consts.SESSION_USE_CASE_KEY].state_service.sessions) == 0
@@ -62,7 +62,7 @@ async def test_delete_pod_on_cancelled_error_during_waiting_pod_ready(future,
     app[consts.SESSION_USE_CASE_KEY].k8s_service.wait_until_pod_is_ready = mock.Mock(side_effect=CancelledError())
     app[consts.SESSION_USE_CASE_KEY].k8s_service.delete_pod = mock.Mock(return_value=future())
 
-    resp = await client.post(f'/api/v1/session', json=webdriver_request)
+    resp = await client.post('/api/v1/session', json=webdriver_request)
 
     assert resp.status == web.HTTPInternalServerError.status_code
     assert len(app[consts.SESSION_USE_CASE_KEY].state_service.sessions) == 0
@@ -84,7 +84,7 @@ async def test_delete_pod_on_error_during_creation_webdriver_session(future,
     app[consts.SESSION_USE_CASE_KEY].webdriver_service.create_session = mock.Mock(side_effect=WebDriverException())
     app[consts.SESSION_USE_CASE_KEY].k8s_service.delete_pod = mock.Mock(return_value=future())
 
-    resp = await client.post(f'/api/v1/session', json=webdriver_request)
+    resp = await client.post('/api/v1/session', json=webdriver_request)
 
     assert resp.status == web.HTTPInternalServerError.status_code
     assert len(app[consts.SESSION_USE_CASE_KEY].state_service.sessions) == 0
