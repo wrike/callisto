@@ -11,7 +11,11 @@ from .runner import run_agent
 
 
 if t.TYPE_CHECKING:
-    from ...libs.domains.config import K8sConfig, PodConfig, WebOptions
+    from ...libs.domains.config import (
+        K8sConfig,
+        PodConfig,
+        WebOptions,
+    )
 
 
 def main(web_parameters: WebOptions,

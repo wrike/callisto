@@ -85,7 +85,7 @@ class K8sService:
         # In some cases K8s does not return pod IP
         # Need a retry on the tests side
         if pod_ip is None:
-            raise K8SEmptyPodIp(f"Pod does not have an IP")
+            raise K8SEmptyPodIp("Pod does not have an IP")
 
         return pod_ip
 

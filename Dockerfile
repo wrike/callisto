@@ -9,7 +9,7 @@ ARG PYTHON_MODULE=callisto
 
 ENV PYTHONUNBUFFERED 1
 ENV PATH="/venv/bin:${PATH}"
-ENV POETRY_VERSION=1.0.2
+ENV POETRY_VERSION=1.0.9
 
 # install system build dependencies
 RUN apk update && \

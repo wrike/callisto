@@ -21,10 +21,10 @@ from ..task_runner import TaskRunnerService
 
 if t.TYPE_CHECKING:
     from kubernetes_asyncio.client import (  # type: ignore
-        V1APIVersions,
-        V1Pod,
         CoreApi,
         CoreV1Api,
+        V1APIVersions,
+        V1Pod,
         V1Status,
     )
 
@@ -127,7 +127,7 @@ class K8sClient:
                 if event['type'] == LISTENING_EVENT_TYPE:
                     if self.is_pod_ready(event['object']):
                         pod_name = event['object'].metadata.name
-                        logger.debug(f'pod is ready', extra=l_ctx(namespace=namespace, pod=pod_name))
+                        logger.debug('pod is ready', extra=l_ctx(namespace=namespace, pod=pod_name))
                         yield pod_name
                 elif event['type'] in SKIP_EVENT_TYPES:
                     pass

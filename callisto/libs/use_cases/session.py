@@ -18,12 +18,11 @@ from ..services.webdriver.protocol import WebDriverProtocol
 
 
 if t.TYPE_CHECKING:
-    from ..services.task_runner import TaskRunnerService
-
     from ..domains.config import PodConfig
     from ..services.k8s.service import K8sService
-    from ..services.webdriver.service import WebDriverService
     from ..services.state import StateService
+    from ..services.task_runner import TaskRunnerService
+    from ..services.webdriver.service import WebDriverService
 
 
 class SessionUseCase:
@@ -50,10 +49,10 @@ class SessionUseCase:
             session_response = await self._create_session(session_request=session_request,
                                                           pod_name=pod_name,
                                                           pod_ip=pod_ip)
-            logger.info(f'session created', extra=l_ctx(session_id=WebDriverProtocol.get_session_id(session_response),
-                                                        pod=pod_name,
-                                                        pod_ip=pod_ip,
-                                                        node_name=self.k8s_service.get_node_name(pod)))
+            logger.info('session created', extra=l_ctx(session_id=WebDriverProtocol.get_session_id(session_response),
+                                                       pod=pod_name,
+                                                       pod_ip=pod_ip,
+                                                       node_name=self.k8s_service.get_node_name(pod)))
 
             patched_session_response = WebDriverProtocol.patch_session_response(session_response=session_response,
                                                                                 pod_name=pod_name,
@@ -76,7 +75,7 @@ class SessionUseCase:
             with record_stage_stats(self.state_service, SessionStage.DELETING):
                 with record_step_stats(self.state_service, SessionStageStep.DELETING_POD):
                     await self._delete_pod(name=pod_name)
-                logger.info(f'session deleted', extra=l_ctx(pod=pod_name))
+                logger.info('session deleted', extra=l_ctx(pod=pod_name))
         except K8sPodNotFound as e:
             # It looks like pod was preempted.
             # This is normal behavior for preemptible nodes.
