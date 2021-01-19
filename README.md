@@ -13,8 +13,8 @@ Nginx and Callisto must be running inside a Kubernetes cluster in order to acces
 
 ## Features
 * No Selenium Grid components used
-* Selenoid images can be used
-* Selenoid-UI can be used
+* [Selenoid images](https://github.com/aerokube/images) can be used
+* [Selenoid UI](https://github.com/aerokube/selenoid-ui) can be used
 
 ## Requirements
 * Running Kubernetes cluster
