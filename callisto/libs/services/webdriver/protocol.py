@@ -41,8 +41,15 @@ class WebDriverProtocol:
     def get_test_name(session_request: t.Dict[str, t.Any]) -> str:
         """Selenoid feature
            https://aerokube.com/selenoid/latest/#_custom_test_name_name
+
+           We still need to be able to return the test name from desiredCapabilities to support Selenium 3 tests.
         """
-        return session_request.get('desiredCapabilities', {}).get('name', '')
+        capabilities = session_request.get('capabilities', {}).get('firstMatch', [{}])[0]
+
+        if 'selenoid:options' in capabilities:
+            return capabilities.get("selenoid:options", {}).get('name', '')
+        else:
+            return session_request.get('desiredCapabilities', {}).get('name', '')
 
     @staticmethod
     def get_browser_version(session_response: t.Dict[str, t.Any]) -> str:

@@ -19,7 +19,7 @@ prepare:
 	&& . ${VENV_NAME}/bin/activate \
 	&& curl -sSL https://raw.githubusercontent.com/sdispater/poetry/${POETRY_VERSION}/get-poetry.py > get-poetry.py \
 	&& cat get-poetry.py | sha256sum -c poetry-${POETRY_VERSION}.checksum \
-	&& python get-poetry.py -y \
+	&& python get-poetry.py -y --version ${POETRY_VERSION} \
 	&& . ${HOME}/.poetry/env \
 	\
 	&& (if [ "${ENVIRONMENT}" = "prod" ]; \
