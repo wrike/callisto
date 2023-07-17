@@ -28,16 +28,19 @@ from callisto.web.routes import setup_routes
 async def _init_k8s_service(k8s_config: K8sConfig, task_runner_service: TaskRunnerService) -> K8sService:
     k8s_client = K8sClient(core_client=mock.Mock(), v1_client=mock.Mock(), task_runner_service=task_runner_service)
 
-    k8s_service = K8sService(k8s_client=k8s_client,
-                             namespace=k8s_config.namespace,
-                             pod_event_service=PodEventService(),
-                             task_runner_service=task_runner_service)
+    k8s_service = K8sService(
+        k8s_client=k8s_client,
+        namespace=k8s_config.namespace,
+        pod_event_service=PodEventService(),
+        task_runner_service=task_runner_service,
+    )
     return k8s_service
 
 
 async def _init_task_runner_service() -> TaskRunnerService:
     async def spawn(coro):
         await coro
+
     scheduler = mock.Mock()
     scheduler.spawn = spawn
 
@@ -46,16 +49,16 @@ async def _init_task_runner_service() -> TaskRunnerService:
 
 @pytest.fixture
 def get_config():
-    k8s_config = K8sConfig(in_cluster=True, namespace='default')
-    pod_config = PodConfig(manifest={}, webdriver_path='', webdriver_port=4444)
-    instance_id = 'unknown'
+    k8s_config = K8sConfig(in_cluster=True, namespace="default")
+    pod_config = PodConfig(manifest={}, webdriver_path="", webdriver_port=4444)
+    instance_id = "unknown"
     graylog_config = None
 
     return k8s_config, pod_config, instance_id, graylog_config
 
 
 @pytest.fixture
-async def app_state(future, get_config):
+async def app_state(get_config):
     k8s_config, pod_config, instance_id, graylog_config = get_config
 
     task_runner_service = await _init_task_runner_service()
@@ -67,26 +70,29 @@ async def app_state(future, get_config):
     return {
         consts.HEALTH_CHECK_USE_CASE_KEY: HealthCheckUseCase(),
         consts.METRICS_USE_CASE_KEY: MetricsUseCase(state_service=state_service),
-        consts.SESSION_USE_CASE_KEY: SessionUseCase(k8s_service=k8s_service,
-                                                    webdriver_service=webdriver_service,
-                                                    pod_config=pod_config,
-                                                    state_service=state_service,
-                                                    task_runner_service=task_runner_service),
+        consts.SESSION_USE_CASE_KEY: SessionUseCase(
+            k8s_service=k8s_service,
+            webdriver_service=webdriver_service,
+            pod_config=pod_config,
+            state_service=state_service,
+            task_runner_service=task_runner_service,
+        ),
         consts.STATUS_USE_CASE_KEY: StatusUseCase(state_service=state_service),
         consts.WEBDRIVER_LOGS_USE_CASE_KEY: WebdriverLogsUseCase(k8s_service),
     }
 
 
 @pytest.fixture
-async def run_test_server(future, app_state):
+async def run_test_server(app_state):
     """
     Run API web application. Some services are replaced with simpler ones.
     """
     server = None
 
     async def wrapped():
-        app = web.Application(middlewares=[tracing_middleware_factory(trace_id, request_then_uuid_factory()),
-                                           error_middleware])
+        app = web.Application(
+            middlewares=[tracing_middleware_factory(trace_id, request_then_uuid_factory()), error_middleware]
+        )
 
         app.update(app_state)
         setup_routes(app)

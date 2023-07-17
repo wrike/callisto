@@ -18,32 +18,35 @@ if t.TYPE_CHECKING:
     )
 
 
-def main(web_parameters: WebOptions,
-         log_level_name: str,
-         k8s_config: K8sConfig,
-         pod_config: PodConfig,
-         instance_id: str,
-         sentry_dsn: str,
-         graylog_config: t.Optional[GraylogParameters]
-         ) -> None:
+def main(
+    web_parameters: WebOptions,
+    log_level_name: str,
+    k8s_config: K8sConfig,
+    pod_config: PodConfig,
+    instance_id: str,
+    sentry_dsn: str,
+    graylog_config: GraylogParameters | None,
+) -> None:
     try:
         log_level = int(logging.getLevelName(log_level_name))
     except ValueError as e:
         raise RuntimeError(f"Incorrect log level {log_level_name}") from e
 
     loop = asyncio.get_event_loop()
-    close_callback = loop.run_until_complete(run_agent(
-        web_parameters=web_parameters,
-        log_level=log_level,
-        k8s_config=k8s_config,
-        pod_config=pod_config,
-        instance_id=instance_id,
-        sentry_dsn=sentry_dsn,
-        graylog_config=graylog_config,
-    ))
+    close_callback = loop.run_until_complete(
+        run_agent(
+            web_parameters=web_parameters,
+            log_level=log_level,
+            k8s_config=k8s_config,
+            pod_config=pod_config,
+            instance_id=instance_id,
+            sentry_dsn=sentry_dsn,
+            graylog_config=graylog_config,
+        )
+    )
 
     try:
-        logger.info('run loop')
+        logger.info("run loop")
 
         loop.run_forever()
     finally:

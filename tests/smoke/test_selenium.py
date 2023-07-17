@@ -4,6 +4,6 @@ from selenium.webdriver.remote.webdriver import WebDriver
 
 
 def test_example_chrome(chrome_webdriver: WebDriver):
-    chrome_webdriver.get('http://www.example.com')
+    chrome_webdriver.get("http://www.example.com")
 
     assert chrome_webdriver.title == "Example Domain"

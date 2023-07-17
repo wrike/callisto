@@ -24,19 +24,21 @@ from .task_runner import init_task_runner_service
 from .webdriver import init_webdriver_service
 
 
-async def run_agent(web_parameters: WebOptions,
-                    log_level: int,
-                    k8s_config: K8sConfig,
-                    pod_config: PodConfig,
-                    instance_id: str,
-                    sentry_dsn: str,
-                    graylog_config: t.Optional[GraylogParameters],
-                    ) -> t.Callable[[], t.Awaitable[None]]:
-    init_logger(config=get_default_logging_config(instance_id=instance_id, graylog_config=graylog_config),
-                log_level=log_level)
+async def run_agent(
+    web_parameters: WebOptions,
+    log_level: int,
+    k8s_config: K8sConfig,
+    pod_config: PodConfig,
+    instance_id: str,
+    sentry_dsn: str,
+    graylog_config: GraylogParameters | None,
+) -> t.Callable[[], t.Awaitable[None]]:
+    init_logger(
+        config=get_default_logging_config(instance_id=instance_id, graylog_config=graylog_config), log_level=log_level
+    )
     init_sentry(sentry_dsn=sentry_dsn, instance_id=instance_id)
 
-    scheduler = await init_scheduler()
+    scheduler = init_scheduler()
     task_runner_service = await init_task_runner_service(scheduler)
     k8s_service = await init_k8s_service(k8s_config=k8s_config, task_runner_service=task_runner_service)
     state_service = init_state_service(k8s_service=k8s_service, instance_id=instance_id)
@@ -49,20 +51,24 @@ async def run_agent(web_parameters: WebOptions,
         app_state={
             consts.HEALTH_CHECK_USE_CASE_KEY: HealthCheckUseCase(),
             consts.METRICS_USE_CASE_KEY: MetricsUseCase(state_service=state_service),
-            consts.SESSION_USE_CASE_KEY: SessionUseCase(k8s_service=k8s_service,
-                                                        webdriver_service=webdriver_service,
-                                                        pod_config=pod_config,
-                                                        state_service=state_service,
-                                                        task_runner_service=task_runner_service),
+            consts.SESSION_USE_CASE_KEY: SessionUseCase(
+                k8s_service=k8s_service,
+                webdriver_service=webdriver_service,
+                pod_config=pod_config,
+                state_service=state_service,
+                task_runner_service=task_runner_service,
+            ),
             consts.STATUS_USE_CASE_KEY: StatusUseCase(state_service=state_service),
             consts.WEBDRIVER_LOGS_USE_CASE_KEY: WebdriverLogsUseCase(k8s_service),
-        }
+        },
     )
 
-    return on_close((
-        scheduler.close,
-        web_runner.cleanup,
-    ))
+    return on_close(
+        (
+            scheduler.close,
+            web_runner.cleanup,
+        )
+    )
 
 
 def on_close(close_cbks: t.Iterable[t.Callable[[], t.Awaitable[t.Any]]]) -> t.Callable[[], t.Awaitable[None]]:

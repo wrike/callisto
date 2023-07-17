@@ -5,7 +5,7 @@ from contextvars import ContextVar
 from uuid import uuid4
 
 
-trace_id: ContextVar[str] = ContextVar('trace_id')
+trace_id: ContextVar[str] = ContextVar("trace_id")
 DEFAULT_WEB_HEADER = "X-Request-ID"
 
 if t.TYPE_CHECKING:

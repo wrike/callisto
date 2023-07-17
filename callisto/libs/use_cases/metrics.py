@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing as t
 
 import aiohttp.web as web
-from prometheus_client.exposition import CONTENT_TYPE_LATEST  # type: ignore
+from prometheus_client.exposition import CONTENT_TYPE_LATEST
 
 
 if t.TYPE_CHECKING:
@@ -19,4 +19,4 @@ class MetricsUseCase:
 
         # cannot fill Content-type with content_type argument of the Response.__init__,
         # as CONTENT_TYPE_LATEST includes more than just content type... (charset etc.)
-        return web.Response(body=metrics, headers={'Content-type': CONTENT_TYPE_LATEST})
+        return web.Response(body=metrics, headers={"Content-type": CONTENT_TYPE_LATEST})

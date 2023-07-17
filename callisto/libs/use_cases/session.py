@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import typing as t
-from concurrent.futures import CancelledError
+from asyncio import CancelledError
+from functools import partial
 
 from sentry_sdk import capture_exception
 
@@ -11,7 +12,6 @@ from ..exceptions import (
     SessionNotFound,
     WebDriverException,
 )
-from ..helpers import async_partial
 from ..services.log import l_ctx, logger
 from ..services.state import record_stage_stats, record_step_stats
 from ..services.webdriver.protocol import WebDriverProtocol
@@ -26,45 +26,52 @@ if t.TYPE_CHECKING:
 
 
 class SessionUseCase:
-    def __init__(self,
-                 k8s_service: K8sService,
-                 webdriver_service: WebDriverService,
-                 pod_config: PodConfig,
-                 state_service: StateService,
-                 task_runner_service: TaskRunnerService,
-                 ) -> None:
+    def __init__(
+        self,
+        k8s_service: K8sService,
+        webdriver_service: WebDriverService,
+        pod_config: PodConfig,
+        state_service: StateService,
+        task_runner_service: TaskRunnerService,
+    ) -> None:
         self.k8s_service = k8s_service
         self.webdriver_service = webdriver_service
         self.pod_config = pod_config
         self.state_service = state_service
         self.task_runner_service = task_runner_service
 
-    async def create_session(self, session_request: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:
+    async def create_session(self, session_request: dict[str, t.Any]) -> dict[str, t.Any]:
+        logger.debug("creating session", extra=l_ctx(request_body=session_request))
+
         with record_stage_stats(self.state_service, SessionStage.CREATING):
             pod_name = await self._run_pod()
             with record_step_stats(self.state_service, SessionStageStep.GETTING_POD):
                 pod = await self.k8s_service.get_pod(pod_name)
             pod_ip = self.k8s_service.get_pod_ip(pod)
 
-            session_response = await self._create_session(session_request=session_request,
-                                                          pod_name=pod_name,
-                                                          pod_ip=pod_ip)
-            logger.info('session created', extra=l_ctx(session_id=WebDriverProtocol.get_session_id(session_response),
-                                                       pod=pod_name,
-                                                       pod_ip=pod_ip,
-                                                       node_name=self.k8s_service.get_node_name(pod)))
+            session_response = await self._create_session(
+                session_request=session_request, pod_name=pod_name, pod_ip=pod_ip
+            )
+            logger.info(
+                "session created",
+                extra=l_ctx(
+                    session_id=WebDriverProtocol.get_session_id(session_response),
+                    pod=pod_name,
+                    pod_ip=pod_ip,
+                    node_name=self.k8s_service.get_node_name(pod),
+                ),
+            )
 
-            patched_session_response = WebDriverProtocol.patch_session_response(session_response=session_response,
-                                                                                pod_name=pod_name,
-                                                                                pod_ip=pod_ip)
-            self.state_service.add_session(pod=pod,
-                                           session_request=session_request,
-                                           patched_session_response=patched_session_response)
+            patched_session_response = WebDriverProtocol.patch_session_response(
+                session_response=session_response, pod_name=pod_name, pod_ip=pod_ip
+            )
+            self.state_service.add_session(
+                pod=pod, session_request=session_request, patched_session_response=patched_session_response
+            )
             return patched_session_response
 
-    async def delete_session(self, pod_name: str) -> t.Dict[str, t.Any]:
-        await self.task_runner_service.run_in_background(
-            async_partial(self._delete_session, pod_name=pod_name))
+    async def delete_session(self, pod_name: str) -> dict[str, t.Any]:
+        await self.task_runner_service.run_in_background(partial(self._delete_session, pod_name=pod_name))
 
         # Always return the correct answer to client.
         # Cleanup errors shouldn't affect the tests results.
@@ -75,7 +82,7 @@ class SessionUseCase:
             with record_stage_stats(self.state_service, SessionStage.DELETING):
                 with record_step_stats(self.state_service, SessionStageStep.DELETING_POD):
                     await self._delete_pod(name=pod_name)
-                logger.info('session deleted', extra=l_ctx(pod=pod_name))
+                logger.info("session deleted", extra=l_ctx(pod=pod_name))
         except K8sPodNotFound as e:
             # It looks like pod was preempted.
             # This is normal behavior for preemptible nodes.
@@ -90,11 +97,11 @@ class SessionUseCase:
                 logger.warning(e)
 
     async def _run_pod(self) -> str:
-        logger.debug('creating pod')
+        logger.debug("creating pod")
         with record_step_stats(self.state_service, SessionStageStep.CREATING_POD):
             pod = await self.k8s_service.create_pod(spec=self.pod_config.manifest)
         pod_name = self.k8s_service.get_pod_name(pod)
-        logger.debug('pod created', extra=l_ctx(pod=pod_name))
+        logger.debug("pod created", extra=l_ctx(pod=pod_name))
 
         try:
             with record_step_stats(self.state_service, SessionStageStep.WAITING_FOR_POD_READY):
@@ -105,27 +112,31 @@ class SessionUseCase:
 
         return pod_name
 
-    async def _create_session(self,
-                              session_request: t.Dict[str, t.Any],
-                              pod_name: str,
-                              pod_ip: str,
-                              ) -> t.Dict[str, t.Any]:
+    async def _create_session(
+        self,
+        session_request: dict[str, t.Any],
+        pod_name: str,
+        pod_ip: str,
+    ) -> dict[str, t.Any]:
         try:
             with record_step_stats(self.state_service, SessionStageStep.CREATING_WEBDRIVER_SESSION):
-                session_response = await self.webdriver_service.create_session(pod_ip=pod_ip,
-                                                                               session_request=session_request)
-            logger.debug('webdriver session created',
-                         extra=l_ctx(pod=pod_name, session_id=WebDriverProtocol.get_session_id(session_response)))
+                session_response = await self.webdriver_service.create_session(
+                    pod_ip=pod_ip, session_request=session_request
+                )
+            logger.debug(
+                "webdriver session created",
+                extra=l_ctx(pod=pod_name, session_id=WebDriverProtocol.get_session_id(session_response)),
+            )
         except (CancelledError, WebDriverException) as e:
             await self._delete_pod(name=pod_name)
             raise e
 
         if not WebDriverProtocol.is_session_created(session_response):
             await self._delete_pod(name=pod_name)
-            raise WebDriverException(f'Create session error: {session_response}')
+            raise WebDriverException(f"Create session error: {session_response}")
 
         return session_response
 
     async def _delete_pod(self, name: str) -> None:
-        logger.debug('deleting pod', extra=l_ctx(pod=name))
+        logger.debug("deleting pod", extra=l_ctx(pod=name))
         await self.k8s_service.delete_pod(name=name)

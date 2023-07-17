@@ -20,13 +20,12 @@ if t.TYPE_CHECKING:
     AiohttpHandler = t.Callable[[Request], t.Awaitable[Response]]
     MiddlewereHandler = t.Callable[[Request, AiohttpHandler], t.Awaitable[Response]]
 
-T = t.TypeVar('T')
+T = t.TypeVar("T")
 
 
 @middleware
 async def error_middleware(request: Request, handler: t.Callable[[Request], t.Awaitable[Response]]) -> Response:
-    """logs an exception and returns an error message to the client
-    """
+    """logs an exception and returns an error message to the client"""
     try:
         return await handler(request)
     except Exception as e:
@@ -44,9 +43,7 @@ def tracing_context(variable: ContextVar[T], value: T) -> t.Generator[None, None
         variable.reset(token)
 
 
-def tracing_middleware_factory(
-        variable: ContextVar[T],
-        trace_id_getter: t.Callable[[Request], T]) -> MiddlewereHandler:
+def tracing_middleware_factory(variable: ContextVar[T], trace_id_getter: t.Callable[[Request], T]) -> MiddlewereHandler:
     @middleware
     async def middleware_handler(request: Request, handler: AiohttpHandler) -> Response:
         """Add trace ids to web requests."""
