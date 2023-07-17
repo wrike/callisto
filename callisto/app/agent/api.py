@@ -10,13 +10,13 @@ from ...web.routes import setup_routes
 from .logger import logger
 
 
-async def run_api(*,
-                  host: str,
-                  port: int,
-                  app_state: t.Mapping[str, t.Any]) -> web.AppRunner:
+async def run_api(*, host: str, port: int, app_state: t.Mapping[str, t.Any]) -> web.AppRunner:
     app = web.Application(
-        middlewares=[tracing_middleware_factory(trace_id, request_then_uuid_factory()),  # type: ignore
-                     error_middleware])  # type: ignore
+        middlewares=[
+            tracing_middleware_factory(trace_id, request_then_uuid_factory()),  # type: ignore
+            error_middleware,  # type: ignore
+        ]
+    )
 
     app.update(app_state)
     setup_routes(app)

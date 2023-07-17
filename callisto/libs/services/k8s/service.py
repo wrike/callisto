@@ -18,12 +18,13 @@ if t.TYPE_CHECKING:
 
 
 class K8sService:
-    def __init__(self,
-                 k8s_client: K8sClient,
-                 namespace: str,
-                 pod_event_service: PodEventService,
-                 task_runner_service: TaskRunnerService,
-                 ) -> None:
+    def __init__(
+        self,
+        k8s_client: K8sClient,
+        namespace: str,
+        pod_event_service: PodEventService,
+        task_runner_service: TaskRunnerService,
+    ) -> None:
         self.k8s_client = k8s_client
         self.namespace = namespace
         self.pod_event_service = pod_event_service
@@ -44,7 +45,7 @@ class K8sService:
     async def get_pod(self, name: str) -> V1Pod:
         return await self.k8s_client.get_pod(namespace=self.namespace, name=name)
 
-    async def create_pod(self, spec: t.Dict[str, t.Any]) -> V1Pod:
+    async def create_pod(self, spec: dict[str, t.Any]) -> V1Pod:
         return await self.k8s_client.create_pod(namespace=self.namespace, spec=spec)
 
     async def delete_pod(self, name: str) -> V1Status:
@@ -94,9 +95,9 @@ class K8sService:
         return pod.metadata.name
 
     @staticmethod
-    def _get_browser_env(pod: V1Pod, env_name: str) -> t.Optional[str]:
+    def _get_browser_env(pod: V1Pod, env_name: str) -> str | None:
         for container in pod.spec.containers:
-            if container.name != 'browser' or not container.env:
+            if container.name != "browser" or not container.env:
                 continue
 
             for env in container.env:
@@ -107,14 +108,14 @@ class K8sService:
     @classmethod
     def get_browser_timezone(cls, pod: V1Pod) -> str:
         # default https://aerokube.com/selenoid/latest/#_setting_timezone
-        return cls._get_browser_env(pod, 'TZ') or 'UTC'
+        return cls._get_browser_env(pod, "TZ") or "UTC"
 
     @classmethod
     def get_browser_vnc_enabled(cls, pod: V1Pod) -> bool:
         # default https://github.com/aerokube/selenoid-images/blob/master/selenium/chrome/entrypoint.sh#L60
-        return cls._get_browser_env(pod, 'ENABLE_VNC') == 'true'
+        return cls._get_browser_env(pod, "ENABLE_VNC") == "true"
 
     @classmethod
     def get_browser_screen_resolution(cls, pod: V1Pod) -> str:
         # default https://github.com/aerokube/selenoid-images/blob/master/selenium/chrome/entrypoint.sh#L2
-        return cls._get_browser_env(pod, 'SCREEN_RESOLUTION') or '1920x1080x24'
+        return cls._get_browser_env(pod, "SCREEN_RESOLUTION") or "1920x1080x24"

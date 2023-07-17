@@ -1,7 +1,13 @@
 variables:
+  DOCKER_HOST: "tcp://docker:2375"
+  # Instruct Docker not to start over TLS.
+  DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
-  LATEST_VER: '${CI_REGISTRY_IMAGE}:latest'
-  COMMIT_VER: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  DIND_IMAGE: docker:24.0.2-dind
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH
 
 before_script:
   - set -u
@@ -12,12 +18,11 @@ after_script:
 
 stages:
   - run_checks
-  - build_image
-  - post_build
   - publish
 
+
 run_checks:
-  image: python:3.7.6-alpine3.11
+  image: python:3.11.4-alpine3.18
   stage: run_checks
   coverage: '/^TOTAL\s+\d+\s+\d+\s+(\d+%)$/'
   cache:
@@ -29,43 +34,41 @@ run_checks:
     - make prepare
     - source .venv/bin/activate
     - make lint
-    - make tests
+    - make test
 
-build_image:
-  image: docker:18.09.7-git
-  stage: build_image
-  only:
-    - master
-  variables:
-    ENVIRONMENT: 'prod'
-  script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-    - docker build -t $LATEST_VER --build-arg ENVIRONMENT="$ENVIRONMENT" .
-    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
-    - docker tag $LATEST_VER ${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
-    - docker push $LATEST_VER
-    - |
-      echo docker push ${CI_REGISTRY_IMAGE}:$VERSION-${CI_PIPELINE_IID}
-      docker push ${CI_REGISTRY_IMAGE}:$VERSION-${CI_PIPELINE_IID}
 
-.smoke_tests:
-  image: docker:18.09.7-git
+smoke_tests:
+  image: $DIND_IMAGE
+  stage: run_checks
   services:
-    - docker:18.09.7-dind
+    - name: $DIND_IMAGE
+      # explicitly disable tls to avoid docker startup interruption
+      command: ["--tls=false"]
+      alias: docker
   variables:
-    KUBECTL: v1.15.0
-    KIND: v0.7.0
-    DOCKER_HOST: tcp://docker:2375/  # for dind
-  stage: post_build
+    KUBECTL: v1.27.1
+    KIND: v0.19.0
+  tags:
+    - dind
   script:
+    - set -u
+    - date
+
+    # build image
+    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
+    - CALLISTO_IMAGE=${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
+    - docker build -t $CALLISTO_IMAGE --build-arg ENVIRONMENT="prod" .
+    - date
+
     # Download kind and kubectl
-    - apk add --update-cache --upgrade curl jq make
+    - apk add --update-cache --upgrade curl jq make sed
     - curl https://github.com/kubernetes-sigs/kind/releases/download/${KIND}/kind-linux-amd64 -sLfSo /usr/local/bin/kind && chmod +x /usr/local/bin/kind
     - curl https://storage.googleapis.com/kubernetes-release/release/${KUBECTL}/bin/linux/amd64/kubectl -sLfSo /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl
 
     # Run kind cluster
     - kind create cluster --config=tests/smoke/kind-config.yaml
-    - sed -i -E -e 's/localhost|0\.0\.0\.0/docker/g' "${HOME}/.kube/config"
+    - sed -i -e 's/0\.0\.0\.0/kubernetes/g' "${HOME}/.kube/config"
+    - cat /etc/hosts | sed -e 's/\tdocker/\tdocker kubernetes/g' > /tmp/hosts && cat /tmp/hosts > /etc/hosts
     - date
 
     # Run callisto in kind
@@ -83,65 +86,34 @@ build_image:
     - apk add -U python3 python3-dev libffi-dev build-base gcc
     - make prepare
     - . .venv/bin/activate
-    - make tests_smoke || (kubectl logs deployment/callisto --all-containers=true; false)
+    - make test_smoke || (kubectl logs deployment/callisto --all-containers=true; false)
     - kubectl get all
 
-smoke_tests:
-  extends: .smoke_tests
-  only:
-    - branches
-  except:
-    - master
-  variables:
-    ENVIRONMENT: 'dev'
-  before_script:
-    - set -u
-    - date
 
-    # build image
-    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
-    - CALLISTO_IMAGE=${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
-    - docker build -t $CALLISTO_IMAGE --build-arg ENVIRONMENT="$ENVIRONMENT" .
-    - date
-
-smoke_tests_master:
-  extends: .smoke_tests
-  only:
-    - master
-  before_script:
-    - set -u
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-    - date
-
-    # download image
-    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
-    - CALLISTO_IMAGE=${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
-    - docker pull $CALLISTO_IMAGE
-    - date
-
-publish_image_to_gcr:
-  image: docker:18.09.7-git
+publish_image:
+  image: $DIND_IMAGE
   stage: publish
-  only:
-    - master
+  services:
+    - name: $DIND_IMAGE
+      # explicitly disable tls to avoid docker startup interruption
+      command: [ "--tls=false" ]
+      alias: docker
+  needs:
+    - run_checks
+    - smoke_tests
+  tags:
+    - dind
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: on_success
+    - when: manual
+  variables:
+    ENVIRONMENT: 'prod'
   script:
-    # install google-cloud-sdk
-    - apk add --update-cache --upgrade curl python2
-    - curl -sLfS https://storage.googleapis.com/cloud-sdk-release/google-cloud-sdk-254.0.0-linux-x86_64.tar.gz | tar -C / -zxf -
-    - sh /google-cloud-sdk/install.sh --quiet
-
-    # download image
-    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
-    - LOCAL_CALLISTO_IMAGE=${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-    - docker pull $LOCAL_CALLISTO_IMAGE
-
-    # push to remote registry
-    - docker tag $LOCAL_CALLISTO_IMAGE $REMOTE_CALLISTO_IMAGE
-    - docker tag $LOCAL_CALLISTO_IMAGE $REMOTE_CALLISTO_IMAGE:${VERSION}-${CI_PIPELINE_IID}
-    - echo "$GCR_PUSH_SA" > /tmp/gcr-push-sa.json
-    - /google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=/tmp/gcr-push-sa.json
-    - /google-cloud-sdk/bin/gcloud docker -- push $REMOTE_CALLISTO_IMAGE
+    - docker build -t callisto --build-arg ENVIRONMENT="$ENVIRONMENT" .
+    - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
+    - docker tag callisto ${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
     - |
-      echo /google-cloud-sdk/bin/gcloud docker -- push $REMOTE_CALLISTO_IMAGE:${VERSION}-${CI_PIPELINE_IID}
-      /google-cloud-sdk/bin/gcloud docker -- push $REMOTE_CALLISTO_IMAGE:${VERSION}-${CI_PIPELINE_IID}
+      echo docker push ${CI_REGISTRY_IMAGE}:$VERSION-${CI_PIPELINE_IID}
+      docker push ${CI_REGISTRY_IMAGE}:$VERSION-${CI_PIPELINE_IID}

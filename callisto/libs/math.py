@@ -12,10 +12,10 @@ def percentile(seq: t.Iterable[float], percent: float) -> float:
     from http://code.activestate.com/recipes/511478-finding-the-percentile-of-the-values/
     """
     if not seq:
-        raise ValueError('seq must be non-empty iterable')
+        raise ValueError("seq must be non-empty iterable")
 
     if not (0 < percent < 100):
-        raise ValueError('percent parameter must be between 0 and 100')
+        raise ValueError("percent parameter must be between 0 and 100")
 
     seq = sorted(seq)
 

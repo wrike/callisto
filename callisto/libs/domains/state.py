@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses as dc
-import typing as t
 from enum import Enum
 
 
@@ -17,22 +16,22 @@ class SessionState:
 
 
 class SessionStage(Enum):
-    CREATING = 'creating'
-    ACTIVE = 'active'
-    DELETING = 'deleting'
+    CREATING = "creating"
+    ACTIVE = "active"
+    DELETING = "deleting"
 
     @classmethod
-    def get_calc_duration_items(cls) -> t.List[SessionStage]:
+    def get_calc_duration_items(cls) -> list[SessionStage]:
         # TODO: calculate duration for `ACTIVE` stage
         return [cls.CREATING, cls.DELETING]
 
 
 class SessionStageStep(Enum):
     # creating session
-    CREATING_POD = 'creating_pod'
-    WAITING_FOR_POD_READY = 'waiting_for_pod_ready'
-    GETTING_POD = 'getting_pod'
-    CREATING_WEBDRIVER_SESSION = 'creating_webdriver_session'
+    CREATING_POD = "creating_pod"
+    WAITING_FOR_POD_READY = "waiting_for_pod_ready"
+    GETTING_POD = "getting_pod"
+    CREATING_WEBDRIVER_SESSION = "creating_webdriver_session"
 
     # deleting session
-    DELETING_POD = 'deleting_pod'
+    DELETING_POD = "deleting_pod"

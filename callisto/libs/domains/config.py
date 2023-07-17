@@ -18,6 +18,6 @@ class K8sConfig:
 
 @dc.dataclass(frozen=True)
 class PodConfig:
-    manifest: t.Dict[str, t.Any]
+    manifest: dict[str, t.Any]
     webdriver_path: str
     webdriver_port: int

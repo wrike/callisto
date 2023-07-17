@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 
-import pytest
 from async_timeout import timeout
 from kubernetes_asyncio.client import V1PodList
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -11,7 +10,7 @@ from . import K8sAsync
 
 
 async def browser_pod_exists(k8s: K8sAsync, pod_name: str) -> bool:
-    pods: V1PodList = await k8s.v1_client.list_namespaced_pod(namespace='default')
+    pods: V1PodList = await k8s.v1_client.list_namespaced_pod(namespace="default")
 
     for pod in pods.items:
         if pod.metadata.name == pod_name:
@@ -20,10 +19,9 @@ async def browser_pod_exists(k8s: K8sAsync, pod_name: str) -> bool:
     return False
 
 
-@pytest.mark.asyncio
 async def test_pod_is_deleted(chrome_webdriver: WebDriver, k8s: K8sAsync):
     patched_session_id = chrome_webdriver.session_id
-    pod_name = "-".join(patched_session_id.split('-')[:2])
+    pod_name = "-".join(patched_session_id.split("-")[:2])
 
     # check pod created
     assert await browser_pod_exists(k8s, pod_name) is True

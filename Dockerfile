@@ -1,4 +1,4 @@
-ARG IMAGE="python:3.7.6-alpine3.11"
+ARG IMAGE="python:3.11.4-alpine3.18"
 
 FROM $IMAGE as build-stage
 
@@ -9,7 +9,7 @@ ARG PYTHON_MODULE=callisto
 
 ENV PYTHONUNBUFFERED 1
 ENV PATH="/venv/bin:${PATH}"
-ENV POETRY_VERSION=1.0.9
+ENV POETRY_VERSION=1.5.1
 
 # install system build dependencies
 RUN apk update && \
@@ -18,25 +18,22 @@ RUN apk update && \
 WORKDIR /app
 
 # copy package files needed for building
-COPY poetry.lock pyproject.toml poetry-${POETRY_VERSION}.checksum /app/
+COPY poetry.lock pyproject.toml /app/
 
 # install app dependencies, without the app itself
 RUN set -o pipefail \
-   && python3 -m venv /venv \
-   && . /venv/bin/activate \
-   && curl -sSL https://raw.githubusercontent.com/sdispater/poetry/${POETRY_VERSION}/get-poetry.py > get-poetry.py \
-   && cat get-poetry.py | sha256sum -c /app/poetry-${POETRY_VERSION}.checksum \
-   && python get-poetry.py --version ${POETRY_VERSION} \
-   && . $HOME/.poetry/env \
-   && (if [ "${ENVIRONMENT}" = "prod" ]; \
-        then poetry install --no-root --no-dev; \
-        else poetry install --no-root; \
-       fi)
+    && python3 -m venv /venv \
+    && . /venv/bin/activate \
+    && python -m pip install poetry==${POETRY_VERSION} \
+	&& (if [ "${ENVIRONMENT}" = "prod" ]; \
+		then python -m poetry install --only main --no-root; \
+        else python -m poetry install --no-root; \
+	fi)
 
 # copy package files needed for building
 COPY ${PYTHON_MODULE} /app/${PYTHON_MODULE}
 COPY tests /app/tests
-COPY mypy.ini Makefile pytest.ini /app/
+COPY pyproject.toml /app/
 
 # Install the app in the editable mode
 # (after we copied package sources, poetry will install them)
@@ -46,10 +43,9 @@ COPY mypy.ini Makefile pytest.ini /app/
 # but there is no real reason to.
 RUN set -o pipefail \
     && . /venv/bin/activate \
-    && . $HOME/.poetry/env \
     && (if [ "${ENVIRONMENT}" = "prod" ]; \
-        then poetry install --no-dev; \
-        else poetry install; \
+        then python -m poetry install --only main; \
+        else python -m poetry install; \
         fi)
 
 
@@ -63,7 +59,6 @@ ENV PATH="/venv/bin:${PATH}"
 # since package is installed in editable mode, we need to
 # copy its sources to the same location
 COPY --from=build-stage /app/${PYTHON_MODULE} /app/${PYTHON_MODULE}
-COPY --from=build-stage /app/${PYTHON_MODULE}.egg-info /app/${PYTHON_MODULE}.egg-info
 COPY --from=build-stage /venv /venv
 
 WORKDIR /app

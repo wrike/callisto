@@ -13,9 +13,9 @@ if t.TYPE_CHECKING:
     from sentry_sdk._types import Event, Hint
 
 
-def filter_exceptions(event: Event, hint: Hint) -> t.Optional[Event]:
-    if 'exc_info' in hint:
-        exc_type, exc_value, tb = hint['exc_info']
+def filter_exceptions(event: Event, hint: Hint) -> Event | None:
+    if "exc_info" in hint:
+        exc_type, exc_value, tb = hint["exc_info"]
         # CanceledError may be too noisy. This is normal behavior when tests reset the connection
         # K8SEmptyPodIp occurs due to K8s errors, we can't do anything with it
         if exc_type in (CancelledError, K8SEmptyPodIp):

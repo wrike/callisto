@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aiojobs import Scheduler  # type: ignore
+from aiojobs import Scheduler
 
 from ...libs.services.task_runner import TaskRunnerService
 
