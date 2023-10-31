@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1] - 2023-10-06
+
+- fix pod events handling
+- update pyyaml to 6.0.1
+
 ## [1.1.0] - 2023-06-06
 
 - improved Selenium 4 support: ability to set custom test name

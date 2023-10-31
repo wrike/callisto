@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing as t
+from http import HTTPStatus
 
 from aiohttp import (
     ClientConnectorError,
@@ -33,7 +34,6 @@ T = t.TypeVar("T")
 
 
 LISTENING_EVENT_TYPE = "MODIFIED"
-ERROR_EVENT_TYPE = "ERROR"
 SKIP_EVENT_TYPES = ("ADDED", "DELETED")
 
 
@@ -110,26 +110,30 @@ class K8sClient:
 
     async def watch_pod_ready_events(self, namespace: str) -> t.AsyncIterator[str]:
         while True:
-            async for event in watch.Watch().stream(
-                self.v1_client.list_namespaced_pod,
-                namespace=namespace,
-            ):
-                if event["type"] == LISTENING_EVENT_TYPE:
-                    if self.is_pod_ready(event["object"]):
-                        pod_name = event["object"].metadata.name
-                        logger.debug("pod is ready", extra=l_ctx(namespace=namespace, pod=pod_name))
-                        yield pod_name
-                elif event["type"] in SKIP_EVENT_TYPES:
-                    pass
-                elif event["type"] == ERROR_EVENT_TYPE and event["object"].get("code") == 410:
-                    # clients must handle the case by recognizing the status code 410 Gone,
+            try:
+                async for event in watch.Watch().stream(
+                    self.v1_client.list_namespaced_pod,
+                    namespace=namespace,
+                ):
+                    if event["type"] == LISTENING_EVENT_TYPE:
+                        if self.is_pod_ready(event["object"]):
+                            pod_name = event["object"].metadata.name
+                            logger.debug("pod is ready", extra=l_ctx(namespace=namespace, pod=pod_name))
+                            yield pod_name
+                    elif event["type"] in SKIP_EVENT_TYPES:
+                        pass
+                    else:
+                        logger.warning("unhandled event", extra=l_ctx(event=event))
+            except ApiException as e:
+                if e.status == HTTPStatus.GONE:
+                    # Clusters using etcd 3 preserve changes in the last 5 minutes by default.
+                    # Clients must handle the case by recognizing the status code 410 Gone,
                     # clearing their local cache, performing a list operation,
                     # and starting the watch from the resourceVersion returned by that new list operation
                     # (see https://kubernetes.io/docs/reference/using-api/api-concepts/#efficient-detection-of-changes)
-                    # TODO: handle resource_version after https://github.com/tomplus/kubernetes_asyncio/issues/77
-                    break
+                    pass
                 else:
-                    logger.warning("unhandled event", extra=l_ctx(event=event))
+                    raise e
 
     async def get_pod_logs_stream(self, namespace: str, name: str) -> StreamReader:
         resp: ClientResponse = await self.v1_client.read_namespaced_pod_log(
