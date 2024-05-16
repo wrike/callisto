@@ -1,4 +1,4 @@
-ARG IMAGE="python:3.11.4-alpine3.18"
+ARG IMAGE="python:3.12.3-alpine3.19"
 
 FROM $IMAGE as build-stage
 
@@ -9,7 +9,7 @@ ARG PYTHON_MODULE=callisto
 
 ENV PYTHONUNBUFFERED 1
 ENV PATH="/venv/bin:${PATH}"
-ENV POETRY_VERSION=1.5.1
+ENV POETRY_VERSION=1.8.3
 
 # install system build dependencies
 RUN apk update && \

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 
-class BaseError(Exception):
-    ...
+class BaseError(Exception): ...
 
 
 class K8sClientTimeout(BaseError):
