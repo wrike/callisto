@@ -22,7 +22,7 @@ stages:
 
 
 run_checks:
-  image: python:3.11.4-alpine3.18
+  image: python:3.12.3-alpine3.19
   stage: run_checks
   coverage: '/^TOTAL\s+\d+\s+\d+\s+(\d+%)$/'
   cache:

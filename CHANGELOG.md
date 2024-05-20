@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.0] - 2024-05-16
+
+- migration to python 3.12
+- dependencies have been updated to the latest versions
+
 ## [1.1.1] - 2023-10-06
 
 - fix pod events handling
