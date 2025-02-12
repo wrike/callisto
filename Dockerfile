@@ -1,4 +1,4 @@
-ARG IMAGE="python:3.12.3-alpine3.19"
+ARG IMAGE="python:3.13.2-alpine3.21"
 
 FROM $IMAGE as build-stage
 
@@ -9,11 +9,17 @@ ARG PYTHON_MODULE=callisto
 
 ENV PYTHONUNBUFFERED 1
 ENV PATH="/venv/bin:${PATH}"
-ENV POETRY_VERSION=1.8.3
+ENV POETRY_VERSION=2.0.1
+ENV POETRY_VENV="/poetry_venv"
+ENV POETRY_BIN="${POETRY_VENV}/bin/poetry"
 
 # install system build dependencies
 RUN apk update && \
    apk add --no-cache libffi-dev build-base gcc make curl
+
+RUN python3 -m venv ${POETRY_VENV} \
+    && . ${POETRY_VENV}/bin/activate \
+    && pip install poetry==${POETRY_VERSION}
 
 WORKDIR /app
 
@@ -24,11 +30,10 @@ COPY poetry.lock pyproject.toml /app/
 RUN set -o pipefail \
     && python3 -m venv /venv \
     && . /venv/bin/activate \
-    && python -m pip install poetry==${POETRY_VERSION} \
-	&& (if [ "${ENVIRONMENT}" = "prod" ]; \
-		then python -m poetry install --only main --no-root; \
-        else python -m poetry install --no-root; \
-	fi)
+    && (if [ "${ENVIRONMENT}" = "prod" ]; \
+        then ${POETRY_BIN} install --only main --no-root; \
+        else ${POETRY_BIN} install --no-root; \
+        fi)
 
 # copy package files needed for building
 COPY ${PYTHON_MODULE} /app/${PYTHON_MODULE}
@@ -44,8 +49,8 @@ COPY pyproject.toml /app/
 RUN set -o pipefail \
     && . /venv/bin/activate \
     && (if [ "${ENVIRONMENT}" = "prod" ]; \
-        then python -m poetry install --only main; \
-        else python -m poetry install; \
+        then ${POETRY_BIN} install --only main; \
+        else ${POETRY_BIN} install; \
         fi)
 
 

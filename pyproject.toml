@@ -1,19 +1,26 @@
-[tool.poetry]
+[project]
 name = "callisto"
-version = "1.2.2"
+version = "1.2.3"
 description = "A service to manage browser pods in k8s"
-authors = ["Wrike DevOps team <devops+oss@team.wrike.com>"]
+authors = [
+    {name = "Wrike DevOps team", email="devops+oss@team.wrike.com"}
+]
+requires-python = ">=3.11"
 license = "MIT"
-repository = "https://github.com/wrike/callisto"
-keywords = ['web', 'service', 'ci', 'automation']
+keywords = ["web", "service", "ci", "automation"]
+dynamic = ["dependencies"]
+
+[project.urls]
+Repository = "https://github.com/wrike/callisto"
+
+[tool.poetry]
 exclude = ["tests", "*.tests"]
 
 [tool.poetry.dependencies]
-python = "^3.11"
 aiohttp = "^3.9.5"
 aiodns = "^3.2.0"
 aiojobs = "^1.2.1"
-kubernetes_asyncio = "^31.1.0"
+kubernetes_asyncio = "^32.0.0"
 click = "^8.1.7"
 prometheus-client = "^0.21.0"
 sentry-sdk = "^2.2.0"
