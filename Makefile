@@ -4,7 +4,7 @@ PYTHON_BIN := python3
 MAX_LINE_LENGTH := 120
 VENV_NAME := .venv
 ENVIRONMENT = dev
-POETRY_VERSION := 1.8.3
+POETRY_VERSION := 2.0.1
 
 .PHONY: help prepare test test_smoke lint pyfmt
 help:

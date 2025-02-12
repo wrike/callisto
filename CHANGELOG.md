@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.3] - 2025-02-11
+
+- migration to python 3.13
+- dependencies have been updated to the latest versions
+- install poetry to the separate venv
+
+## [1.2.2] - 2024-10-24
+
+- dependencies have been updated to the latest versions
+
+## [1.2.1] - 2024-07-08
+
+- dependencies have been updated to the latest versions
+
 ## [1.2.0] - 2024-05-16
 
 - migration to python 3.12
