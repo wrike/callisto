@@ -91,6 +91,14 @@ def read_pod_manifest(ctx: click.Context, param: click.Option | click.Parameter,
     show_envvar=True,
 )
 @click.option(
+    "--callisto-domain",
+    envvar="CALLISTO_DOMAIN",
+    default=None,
+    help="Callisto domain name. Used for Chrome DevTools protocol",
+    show_default=True,
+    show_envvar=True,
+)
+@click.option(
     "--instance-id",
     envvar="INSTANCE_ID",
     default="unknown",
@@ -126,6 +134,7 @@ def run_with_options(**options: t.Any) -> None:
         log_level_name=log_level,
         k8s_config=k8s_config,
         pod_config=pod_config,
+        callisto_domain=options["callisto_domain"],
         instance_id=options["instance_id"],
         sentry_dsn=options["sentry_dsn"],
         graylog_config=graylog_config,

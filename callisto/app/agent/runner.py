@@ -9,6 +9,7 @@ from ...libs.domains.config import (
     WebOptions,
 )
 from ...libs.domains.logging import GraylogParameters
+from ...libs.services.webdriver.protocol import WebDriverProtocol
 from ...libs.use_cases.health_check import HealthCheckUseCase
 from ...libs.use_cases.metrics import MetricsUseCase
 from ...libs.use_cases.session import SessionUseCase
@@ -29,6 +30,7 @@ async def run_agent(
     log_level: int,
     k8s_config: K8sConfig,
     pod_config: PodConfig,
+    callisto_domain: str | None,
     instance_id: str,
     sentry_dsn: str,
     graylog_config: GraylogParameters | None,
@@ -57,6 +59,7 @@ async def run_agent(
                 pod_config=pod_config,
                 state_service=state_service,
                 task_runner_service=task_runner_service,
+                webdriver_protocol=WebDriverProtocol(callisto_domain=callisto_domain),
             ),
             consts.STATUS_USE_CASE_KEY: StatusUseCase(state_service=state_service),
             consts.WEBDRIVER_LOGS_USE_CASE_KEY: WebdriverLogsUseCase(k8s_service),

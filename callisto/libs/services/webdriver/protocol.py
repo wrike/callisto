@@ -9,6 +9,9 @@ class WebDriverProtocol:
     P.S: Unfortunately, the chromedriver < 75 doesn't use w3c standard protocol by default
     """
 
+    def __init__(self, callisto_domain: str | None) -> None:
+        self.callisto_domain = callisto_domain
+
     @staticmethod
     def get_session_deleted_response() -> dict[str, t.Any]:
         """https://w3c.github.io/webdriver/#delete-session"""
@@ -70,16 +73,25 @@ class WebDriverProtocol:
 
         return session_response.get("status", 0) == 0
 
-    @staticmethod
-    def patch_session_response(session_response: dict[str, t.Any], pod_name: str, pod_ip: str) -> dict[str, t.Any]:
+    def patch_session_response(
+        self, session_response: dict[str, t.Any], pod_name: str, pod_ip: str
+    ) -> dict[str, t.Any]:
         """We add pod_name and pod_ip to sessionId for routing traffic on nginx.
         In nginx we use regex for extracting pod_name and pod_ip.
         value/sessionId for w3c
         sessionId for old chrome
         """
+        session_id = self.get_session_id(session_response)
+
         if "sessionId" in session_response:
-            session_response["sessionId"] = f"{pod_name}-{pod_ip}-{session_response['sessionId']}"
+            session_response["sessionId"] = f"{pod_name}-{pod_ip}-{session_id}"
         else:
-            session_response["value"]["sessionId"] = f"{pod_name}-{pod_ip}-{session_response['value']['sessionId']}"
+            session_response["value"]["sessionId"] = f"{pod_name}-{pod_ip}-{session_id}"
+
+            if self.callisto_domain:
+                session_response["value"]["capabilities"][
+                    "se:cdp"
+                ] = f"ws://{self.callisto_domain}/devtools/{session_response["value"]["sessionId"]}/"
+                session_response["value"]["capabilities"]["se:cdpVersion"] = self.get_browser_version(session_response)
 
         return session_response

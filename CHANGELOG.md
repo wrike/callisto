@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.0] - 2025-05-09
+
+- Add Chrome DevTools (CDT) protocol support
+
 ## [1.2.3] - 2025-02-11
 
 - migration to python 3.13
