@@ -16,6 +16,7 @@ from callisto.libs.services.k8s.client import K8sClient
 from callisto.libs.services.k8s.service import K8sService
 from callisto.libs.services.pod_event import PodEventService
 from callisto.libs.services.task_runner import TaskRunnerService
+from callisto.libs.services.webdriver.protocol import WebDriverProtocol
 from callisto.libs.trace import request_then_uuid_factory, trace_id
 from callisto.libs.use_cases.health_check import HealthCheckUseCase
 from callisto.libs.use_cases.metrics import MetricsUseCase
@@ -76,6 +77,7 @@ async def app_state(get_config):
             pod_config=pod_config,
             state_service=state_service,
             task_runner_service=task_runner_service,
+            webdriver_protocol=WebDriverProtocol(callisto_domain="callisto.domain"),
         ),
         consts.STATUS_USE_CASE_KEY: StatusUseCase(state_service=state_service),
         consts.WEBDRIVER_LOGS_USE_CASE_KEY: WebdriverLogsUseCase(k8s_service),

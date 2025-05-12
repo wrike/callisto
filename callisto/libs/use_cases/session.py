@@ -33,12 +33,14 @@ class SessionUseCase:
         pod_config: PodConfig,
         state_service: StateService,
         task_runner_service: TaskRunnerService,
+        webdriver_protocol: WebDriverProtocol,
     ) -> None:
         self.k8s_service = k8s_service
         self.webdriver_service = webdriver_service
         self.pod_config = pod_config
         self.state_service = state_service
         self.task_runner_service = task_runner_service
+        self.webdriver_protocol = webdriver_protocol
 
     async def create_session(self, session_request: dict[str, t.Any]) -> dict[str, t.Any]:
         logger.debug("creating session", extra=l_ctx(request_body=session_request))
@@ -55,14 +57,14 @@ class SessionUseCase:
             logger.info(
                 "session created",
                 extra=l_ctx(
-                    session_id=WebDriverProtocol.get_session_id(session_response),
+                    session_id=self.webdriver_protocol.get_session_id(session_response),
                     pod=pod_name,
                     pod_ip=pod_ip,
                     node_name=self.k8s_service.get_node_name(pod),
                 ),
             )
 
-            patched_session_response = WebDriverProtocol.patch_session_response(
+            patched_session_response = self.webdriver_protocol.patch_session_response(
                 session_response=session_response, pod_name=pod_name, pod_ip=pod_ip
             )
             self.state_service.add_session(
@@ -75,7 +77,7 @@ class SessionUseCase:
 
         # Always return the correct answer to client.
         # Cleanup errors shouldn't affect the tests results.
-        return WebDriverProtocol.get_session_deleted_response()
+        return self.webdriver_protocol.get_session_deleted_response()
 
     async def _delete_session(self, pod_name: str) -> None:
         try:
@@ -125,7 +127,7 @@ class SessionUseCase:
                 )
             logger.debug(
                 "webdriver session created",
-                extra=l_ctx(pod=pod_name, session_id=WebDriverProtocol.get_session_id(session_response)),
+                extra=l_ctx(pod=pod_name, session_id=self.webdriver_protocol.get_session_id(session_response)),
             )
         except (CancelledError, WebDriverException) as e:
             await self._delete_pod(name=pod_name)

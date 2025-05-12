@@ -34,6 +34,16 @@ Nginx and Callisto must be running inside a Kubernetes cluster in order to acces
 * [Selenoid images](https://github.com/aerokube/images) can be used
 * [Selenoid UI](https://github.com/aerokube/selenoid-ui) can be used
 
+### Chrome DevTools protocol
+
+Starting from version 1.3.0, Callisto supports Chrome DevTools protocol.
+
+For example, you can use it to run [Playwright](https://playwright.dev/docs/selenium-grid) tests:
+
+```bash
+SELENIUM_REMOTE_URL=http://callisto.example.com npx playwright test
+```
+
 ## Installation
 
 See [helm chart](https://github.com/wrike/callisto-chart) to get started.
