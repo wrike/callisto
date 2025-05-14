@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.1] - 2025-05-13
+
+- dependencies have been updated to the latest versions
+
 ## [1.3.0] - 2025-05-09
 
 - Add Chrome DevTools (CDT) protocol support
