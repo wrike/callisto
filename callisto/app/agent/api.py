@@ -21,7 +21,7 @@ async def run_api(*, host: str, port: int, app_state: t.Mapping[t.Any, t.Any]) -
     app.update(app_state)
     setup_routes(app)
 
-    runner = web.AppRunner(app, access_log=False, handle_signals=True)
+    runner = web.AppRunner(app, access_log=False, handle_signals=True, handler_cancellation=True)
     await runner.setup()
 
     site = web.TCPSite(runner, host, port)
