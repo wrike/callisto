@@ -1,6 +1,6 @@
 [project]
 name = "callisto"
-version = "1.3.2"
+version = "1.3.3"
 description = "A service to manage browser pods in k8s"
 authors = [
     {name = "Wrike DevOps team", email="devops+oss@team.wrike.com"}
@@ -18,11 +18,11 @@ exclude = ["tests", "*.tests"]
 
 [tool.poetry.dependencies]
 aiohttp = "^3.9.5"
-aiodns = "^3.2.0"
+aiodns = "^4.0.0"
 aiojobs = "^1.2.1"
-kubernetes_asyncio = "^32.0.0"
+kubernetes_asyncio = "^33.0.0"
 click = "^8.1.7"
-prometheus-client = "^0.21.0"
+prometheus-client = "^0.23.0"
 sentry-sdk = "^2.2.0"
 tenacity = "^9.0.0"
 graypy = "^2.1.0"
