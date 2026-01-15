@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.3] - 2026-01-12
+
+- dependencies have been updated to the latest versions
+
 ## [1.3.2] - 2025-10-15
 
 - fix handling client disconnected events
