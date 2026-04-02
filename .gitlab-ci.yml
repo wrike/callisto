@@ -5,6 +5,9 @@ variables:
   DOCKER_DRIVER: overlay2
   DIND_IMAGE: docker:27.5.1-dind
 
+  UV_VERSION: 0.11.3
+  PYTHON_IMAGE: python:3.13.2-alpine3.21
+
 workflow:
   rules:
     - if: $CI_COMMIT_BRANCH
@@ -22,7 +25,7 @@ stages:
 
 
 run_checks:
-  image: python:3.13.2-alpine3.21
+  image: $PYTHON_IMAGE
   stage: run_checks
   coverage: '/^TOTAL\s+\d+\s+\d+\s+(\d+%)$/'
   cache:
@@ -30,9 +33,10 @@ run_checks:
     paths:
       - .venv/
   script:
-    - apk add --no-cache make curl gcc musl-dev libffi-dev
+    - apk add --no-cache pipx make curl gcc musl-dev libffi-dev
+    - export PATH="$PATH:$HOME/.local/bin"
+    - pipx install uv==$UV_VERSION
     - make prepare
-    - source .venv/bin/activate
     - make lint
     - make test
 
@@ -57,7 +61,7 @@ smoke_tests:
     # build image
     - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
     - CALLISTO_IMAGE=${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
-    - docker build -t $CALLISTO_IMAGE --build-arg ENVIRONMENT="prod" .
+    - docker build -t $CALLISTO_IMAGE --build-arg PYTHON_IMAGE="$PYTHON_IMAGE" --build-arg UV_VERSION="$UV_VERSION" .
     - date
 
     # Download kind and kubectl
@@ -83,9 +87,10 @@ smoke_tests:
     - date
 
     # Run smoke tests
-    - apk add -U python3 python3-dev libffi-dev build-base gcc
+    - apk add -U python3 python3-dev pipx libffi-dev build-base gcc
+    - export PATH="$PATH:$HOME/.local/bin"
+    - pipx install uv==$UV_VERSION
     - make prepare
-    - . .venv/bin/activate
     - make test_smoke || (kubectl logs deployment/callisto --all-containers=true; false)
     - kubectl get all
 
@@ -107,11 +112,9 @@ publish_image:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: on_success
     - when: manual
-  variables:
-    ENVIRONMENT: 'prod'
   script:
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-    - docker build -t callisto --build-arg ENVIRONMENT="$ENVIRONMENT" .
+    - docker build -t callisto --build-arg PYTHON_IMAGE="$PYTHON_IMAGE" --build-arg UV_VERSION="$UV_VERSION" .
     - VERSION=`grep '^version = "' pyproject.toml  | cut -d '"' -f 2`
     - docker tag callisto ${CI_REGISTRY_IMAGE}:${VERSION}-${CI_PIPELINE_IID}
     - |
