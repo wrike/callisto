@@ -3,10 +3,13 @@ variables:
   # Instruct Docker not to start over TLS.
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
-  DIND_IMAGE: docker:27.5.1-dind
+  DIND_IMAGE: docker:29.3.1-dind
 
   UV_VERSION: 0.11.3
   PYTHON_IMAGE: python:3.13.2-alpine3.21
+
+  KIND_VERSION: v0.31.0
+  KUBECTL_VERSION: v1.35.3
 
 workflow:
   rules:
@@ -49,9 +52,6 @@ smoke_tests:
       # explicitly disable tls to avoid docker startup interruption
       command: ["--tls=false"]
       alias: docker
-  variables:
-    KUBECTL: v1.32.0
-    KIND: v0.26.0
   tags:
     - dind
   script:
@@ -66,8 +66,8 @@ smoke_tests:
 
     # Download kind and kubectl
     - apk add --update-cache --upgrade curl jq make sed
-    - curl https://github.com/kubernetes-sigs/kind/releases/download/${KIND}/kind-linux-amd64 -sLfSo /usr/local/bin/kind && chmod +x /usr/local/bin/kind
-    - curl https://dl.k8s.io/release/${KUBECTL}/bin/linux/amd64/kubectl -sLfSo /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl
+    - curl https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64 -sLfSo /usr/local/bin/kind && chmod +x /usr/local/bin/kind
+    - curl https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -sLfSo /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl
 
     # Run kind cluster
     - kind create cluster --config=tests/smoke/kind-config.yaml
