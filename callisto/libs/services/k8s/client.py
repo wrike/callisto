@@ -29,7 +29,7 @@ if t.TYPE_CHECKING:
         V1Status,
     )
 
-ReplicasCount: t.TypeAlias = dict[str, int]
+type ReplicasCount = dict[str, int]
 T = t.TypeVar("T")
 
 

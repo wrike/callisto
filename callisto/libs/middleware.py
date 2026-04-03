@@ -34,7 +34,7 @@ async def error_middleware(request: Request, handler: Handler) -> StreamResponse
 
 
 @contextmanager
-def tracing_context(variable: ContextVar[T], value: T) -> t.Generator[None, None, None]:
+def tracing_context(variable: ContextVar[T], value: T) -> t.Generator[None]:
     token = variable.set(value)
 
     try:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 
-from async_timeout import timeout
 from kubernetes_asyncio.client import V1PodList
 from selenium.webdriver.remote.webdriver import WebDriver
 
@@ -30,6 +29,6 @@ async def test_pod_is_deleted(chrome_webdriver: WebDriver, k8s: K8sAsync):
     chrome_webdriver.quit()
 
     # waiting for pod deletion
-    async with timeout(30):
+    async with asyncio.timeout(30):
         while await browser_pod_exists(k8s, pod_name) is True:
             await asyncio.sleep(5)

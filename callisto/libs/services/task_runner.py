@@ -21,7 +21,7 @@ class TaskRunnerService:
         func: t.Callable[..., t.Awaitable[T]],
         tries: int = 2,
         pause: int = 15,
-        retry_exc: t.Type[BaseException] | tuple[t.Type[BaseException], ...] = Exception,
+        retry_exc: type[BaseException] | tuple[type[BaseException], ...] = Exception,
         *args: t.Any,
         **kwargs: t.Any,
     ) -> T:

@@ -39,14 +39,10 @@ dev = [
     "pytest>=5.3.2",
     "pytest-asyncio>=0.10.0",
     "pytest-cov>=2.8.1",
-    "flake8>=3.7.9",
     "mypy>=0.750",
-    "isort>=4.3.21",
-    "toml>=0.10",
     "selenium>=4.10.0",
     "types-pyyaml>=6.0.12.10",
-    "black>=23.3.0",
-    "async-timeout>=4.0.3",
+    "ruff>=0.15.9",
 ]
 
 [tool.uv]
@@ -66,15 +62,6 @@ wheel-exclude = [
 [build-system]
 requires = ["uv_build>=0.9.26,<0.12.0"]
 build-backend = "uv_build"
-
-[tool.isort]
-line_length = 120
-multi_line_output = 3
-include_trailing_comma = true
-lines_after_imports = 2
-force_grid_wrap = 3
-forced_separate = ["callisto"]
-add_imports = "from __future__ import annotations"
 
 [tool.pytest.ini_options]
 addopts = """
@@ -101,3 +88,21 @@ strict_equality = true
 # Too noisy
 warn_no_return = false
 warn_return_any = false
+
+[tool.ruff]
+line-length = 120
+target-version = 'py313'
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+split-on-trailing-comma = true
+lines-after-imports = 2
+forced-separate = ["callisto"]
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+]
