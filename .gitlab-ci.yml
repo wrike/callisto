@@ -6,7 +6,7 @@ variables:
   DIND_IMAGE: docker:29.3.1-dind
 
   UV_VERSION: 0.11.3
-  PYTHON_IMAGE: python:3.13.2-alpine3.21
+  PYTHON_IMAGE: python:3.14.3-alpine3.23
 
   KIND_VERSION: v0.31.0
   KUBECTL_VERSION: v1.35.3
