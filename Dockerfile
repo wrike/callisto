@@ -1,71 +1,45 @@
-ARG IMAGE="python:3.13.2-alpine3.21"
+ARG PYTHON_IMAGE
+ARG UV_VERSION
 
-FROM $IMAGE as build-stage
+FROM ghcr.io/astral-sh/uv:$UV_VERSION AS uv
 
-LABEL maintainer="Wrike DevOps team <devops+oss@team.wrike.com>"
+FROM $PYTHON_IMAGE AS build-stage
 
-ARG ENVIRONMENT=dev
-ARG PYTHON_MODULE=callisto
-
-ENV PYTHONUNBUFFERED 1
-ENV PATH="/venv/bin:${PATH}"
-ENV POETRY_VERSION=2.0.1
-ENV POETRY_VENV="/poetry_venv"
-ENV POETRY_BIN="${POETRY_VENV}/bin/poetry"
+ENV PYTHONUNBUFFERED=1 \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PROJECT_ENVIRONMENT=/venv
 
 # install system build dependencies
 RUN apk update && \
-   apk add --no-cache libffi-dev build-base gcc make curl
+   apk add --no-cache libffi-dev build-base gcc
 
-RUN python3 -m venv ${POETRY_VENV} \
-    && . ${POETRY_VENV}/bin/activate \
-    && pip install poetry==${POETRY_VERSION}
-
-WORKDIR /app
+# install uv
+COPY --from=uv /uv /bin/
 
 # copy package files needed for building
-COPY poetry.lock pyproject.toml /app/
+COPY uv.lock pyproject.toml /app/
+
+WORKDIR /app
 
 # install app dependencies, without the app itself
-RUN set -o pipefail \
-    && python3 -m venv /venv \
-    && . /venv/bin/activate \
-    && (if [ "${ENVIRONMENT}" = "prod" ]; \
-        then ${POETRY_BIN} install --only main --no-root; \
-        else ${POETRY_BIN} install --no-root; \
-        fi)
+RUN uv sync --locked --no-dev --no-install-project
 
 # copy package files needed for building
-COPY ${PYTHON_MODULE} /app/${PYTHON_MODULE}
-COPY tests /app/tests
-COPY pyproject.toml /app/
+COPY callisto /app/callisto
 
-# Install the app in the editable mode
-# (after we copied package sources, poetry will install them)
-# App is installed in editable mode even in production - poetry cannot
-# install it as a normal package.
-# Alternative is building a wheel with poetry and install it with pip,
-# but there is no real reason to.
-RUN set -o pipefail \
-    && . /venv/bin/activate \
-    && (if [ "${ENVIRONMENT}" = "prod" ]; \
-        then ${POETRY_BIN} install --only main; \
-        else ${POETRY_BIN} install; \
-        fi)
+# Install the app itself
+# https://docs.astral.sh/uv/guides/integration/docker/#non-editable-installs
+RUN uv sync --locked --no-dev --no-editable
 
 
-FROM $IMAGE
+FROM $PYTHON_IMAGE
 
-ARG PYTHON_MODULE=callisto
+LABEL maintainer="Wrike DevOps team <devops+oss@team.wrike.com>"
 
-ENV PYTHONUNBUFFERED 1
-ENV PATH="/venv/bin:${PATH}"
+ENV PYTHONUNBUFFERED=1
 
-# since package is installed in editable mode, we need to
-# copy its sources to the same location
-COPY --from=build-stage /app/${PYTHON_MODULE} /app/${PYTHON_MODULE}
 COPY --from=build-stage /venv /venv
-
-WORKDIR /app
 
 CMD ["/venv/bin/python", "-m", "callisto"]

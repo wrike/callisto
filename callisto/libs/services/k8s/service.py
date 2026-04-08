@@ -14,7 +14,7 @@ from .client import K8sClient
 
 
 if t.TYPE_CHECKING:
-    from kubernetes_asyncio.client import V1Pod, V1Status  # type: ignore
+    from kubernetes_asyncio.client import V1Pod, V1Status
 
 
 class K8sService:

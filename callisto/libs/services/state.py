@@ -5,7 +5,7 @@ import typing as t
 from contextlib import contextmanager
 from datetime import datetime
 
-from kubernetes_asyncio.client import V1Pod  # type: ignore
+from kubernetes_asyncio.client import V1Pod
 from prometheus_client import (
     CollectorRegistry,
     Counter,
@@ -32,7 +32,7 @@ class TimeMeasurement:
 
 @contextmanager
 def record_stage_stats(state_service: StateService, stage: SessionStage) -> t.Iterator[None]:
-    start_time = datetime.utcnow()
+    start_time = datetime.now()
     state_service.stages_processing.labels(instance_id=state_service.instance_id, stage=stage.value).inc()
     try:
         yield
@@ -42,14 +42,14 @@ def record_stage_stats(state_service: StateService, stage: SessionStage) -> t.It
         ).inc()
         state_service.stages_duration.labels(
             instance_id=state_service.instance_id, stage=stage.value, succeeded=True
-        ).observe((datetime.utcnow() - start_time).total_seconds())
+        ).observe((datetime.now() - start_time).total_seconds())
     except Exception:
         state_service.stages_processed.labels(
             instance_id=state_service.instance_id, stage=stage.value, succeeded=False
         ).inc()
         state_service.stages_duration.labels(
             instance_id=state_service.instance_id, stage=stage.value, succeeded=False
-        ).observe((datetime.utcnow() - start_time).total_seconds())
+        ).observe((datetime.now() - start_time).total_seconds())
         raise
     finally:
         state_service.stages_processing.labels(instance_id=state_service.instance_id, stage=stage.value).dec()
@@ -57,7 +57,7 @@ def record_stage_stats(state_service: StateService, stage: SessionStage) -> t.It
 
 @contextmanager
 def record_step_stats(state_service: StateService, step: SessionStageStep) -> t.Iterator[None]:
-    start_time = datetime.utcnow()
+    start_time = datetime.now()
 
     try:
         yield
@@ -69,7 +69,7 @@ def record_step_stats(state_service: StateService, step: SessionStageStep) -> t.
             instance_id=state_service.instance_id,
             step=step.value,
             succeeded=True,
-        ).observe((datetime.utcnow() - start_time).total_seconds())
+        ).observe((datetime.now() - start_time).total_seconds())
     except Exception:
         state_service.stage_steps_processed.labels(
             instance_id=state_service.instance_id, step=step.value, succeeded=False
@@ -78,7 +78,7 @@ def record_step_stats(state_service: StateService, step: SessionStageStep) -> t.
             instance_id=state_service.instance_id,
             step=step.value,
             succeeded=False,
-        ).observe((datetime.utcnow() - start_time).total_seconds())
+        ).observe((datetime.now() - start_time).total_seconds())
         raise
 
 

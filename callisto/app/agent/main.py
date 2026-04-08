@@ -33,7 +33,7 @@ def main(
     except ValueError as e:
         raise RuntimeError(f"Incorrect log level {log_level_name}") from e
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
     close_callback = loop.run_until_complete(
         run_agent(
             web_parameters=web_parameters,

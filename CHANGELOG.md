@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0] - 2026-04-06
+
+- migrate from poetry to uv
+- migrate from black, flake8, isort to ruff
+- update python to 3.14 and update dependencies
+
 ## [1.3.3] - 2026-01-12
 
 - dependencies have been updated to the latest versions

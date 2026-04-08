@@ -8,12 +8,12 @@ from aiohttp import (
     ClientResponse,
     StreamReader,
 )
-from kubernetes_asyncio import (  # type: ignore
+from kubernetes_asyncio import (
     client,
     config,
     watch,
 )
-from kubernetes_asyncio.client.rest import ApiException  # type: ignore
+from kubernetes_asyncio.client.rest import ApiException
 
 from ...exceptions import K8SForbidden, K8sPodNotFound
 from ..log import l_ctx, logger
@@ -21,7 +21,7 @@ from ..task_runner import TaskRunnerService
 
 
 if t.TYPE_CHECKING:
-    from kubernetes_asyncio.client import (  # type: ignore
+    from kubernetes_asyncio.client import (
         CoreApi,
         CoreV1Api,
         V1APIVersions,
@@ -29,7 +29,7 @@ if t.TYPE_CHECKING:
         V1Status,
     )
 
-ReplicasCount: t.TypeAlias = dict[str, int]
+type ReplicasCount = dict[str, int]
 T = t.TypeVar("T")
 
 
@@ -51,7 +51,7 @@ class K8sClient:
     async def init(cls, in_cluster: bool, task_runner_service: TaskRunnerService) -> K8sClient:
         if in_cluster:
             # auth inside k8s cluster
-            config.load_incluster_config()
+            config.load_incluster_config()  # type: ignore[no-untyped-call]
         else:
             # local auth (from kubectl config)
             await config.load_kube_config()
@@ -67,8 +67,14 @@ class K8sClient:
         ClientConnectorError - when kube-api unavailable
         ApiException - some random errors
         """
+
+        # kubernetes_asyncio v35 API methods are regular `def` returning coroutines,
+        # but tenacity only awaits `async def` functions (via is_coroutine_callable check).
+        async def _async_wrapper(**kw: t.Any) -> t.Any:
+            return await func(**kw)
+
         return await self.task_runner_service.run_with_retry(
-            func=func, tries=8, pause=15, retry_exc=(ClientConnectorError, ApiException), **kwargs
+            func=_async_wrapper, tries=8, pause=15, retry_exc=(ClientConnectorError, ApiException), **kwargs
         )
 
     async def get_api_versions(self) -> V1APIVersions:
@@ -136,7 +142,7 @@ class K8sClient:
                     raise e
 
     async def get_pod_logs_stream(self, namespace: str, name: str) -> StreamReader:
-        resp: ClientResponse = await self.v1_client.read_namespaced_pod_log(
+        resp: ClientResponse = await self.v1_client.read_namespaced_pod_log(  # type: ignore[assignment]
             name=name, namespace=namespace, follow=True, _preload_content=False
         )
         return resp.content

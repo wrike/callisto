@@ -21,7 +21,7 @@ def traced_logger_adapter_factory(
     trace_id_getter: t.Callable[[], str],
     separator: str = ">>>",
     overall_context: t.Mapping[str, t.Any] | None = None,
-) -> t.Type[logging.LoggerAdapter[logging.Logger]]:
+) -> type[logging.LoggerAdapter[logging.Logger]]:
     class TracedLoggerAdapter(BaseAdapter):
         # an adapter to reformat log message and parse additional context
 

@@ -89,9 +89,9 @@ class WebDriverProtocol:
             session_response["value"]["sessionId"] = f"{pod_name}-{pod_ip}-{session_id}"
 
             if self.callisto_domain:
-                session_response["value"]["capabilities"][
-                    "se:cdp"
-                ] = f"ws://{self.callisto_domain}/devtools/{session_response["value"]["sessionId"]}/"
+                session_response["value"]["capabilities"]["se:cdp"] = (
+                    f"ws://{self.callisto_domain}/devtools/{session_response['value']['sessionId']}/"
+                )
                 session_response["value"]["capabilities"]["se:cdpVersion"] = self.get_browser_version(session_response)
 
         return session_response

@@ -1,54 +1,64 @@
 [project]
 name = "callisto"
-version = "1.3.3"
+version = "1.4.0"
 description = "A service to manage browser pods in k8s"
-authors = [
-    {name = "Wrike DevOps team", email="devops+oss@team.wrike.com"}
-]
-requires-python = ">=3.11"
+authors = [{ name = "Wrike DevOps team", email = "devops+oss@team.wrike.com" }]
+requires-python = ">=3.14"
 license = "MIT"
-keywords = ["web", "service", "ci", "automation"]
-dynamic = ["dependencies"]
+keywords = [
+    "web",
+    "service",
+    "ci",
+    "automation",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "aiohttp>=3.13.5,<4",
+    "aiodns>=4.0.0,<5",
+    "aiojobs>=1.4.0,<2",
+    "kubernetes-asyncio>=35.0.0,<36",
+    "click>=8.3.2,<9",
+    "prometheus-client>=0.24.1,<0.25",
+    "sentry-sdk>=2.57.0,<3",
+    "tenacity>=9.1.4,<10",
+    "graypy>=2.1.0,<3",
+    "pyyaml>=6.0.3,<7",
+]
 
 [project.urls]
 Repository = "https://github.com/wrike/callisto"
 
-[tool.poetry]
-exclude = ["tests", "*.tests"]
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.1.0",
+    "mypy>=1.20.0",
+    "selenium>=4.41.0",
+    "types-pyyaml>=6.0.12.20250915",
+    "ruff>=0.15.9",
+]
 
-[tool.poetry.dependencies]
-aiohttp = "^3.9.5"
-aiodns = "^4.0.0"
-aiojobs = "^1.2.1"
-kubernetes_asyncio = "^33.0.0"
-click = "^8.1.7"
-prometheus-client = "^0.23.0"
-sentry-sdk = "^2.2.0"
-tenacity = "^9.0.0"
-graypy = "^2.1.0"
-pyyaml = "^6.0"
+[tool.uv]
+default-groups = "all"
 
-[tool.poetry.group.dev.dependencies]
-pytest = ">=5.3.2"
-pytest-asyncio = ">=0.10.0"
-pytest-cov = ">=2.8.1"
-flake8 = ">=3.7.9"
-mypy = ">=0.750"
-isort = ">=4.3.21"
-toml = ">=0.10"
-selenium = ">=4.10.0"
-types-pyyaml = ">=6.0.12.10"
-black = ">=23.3.0"
-async-timeout = ">=4.0.3"
+[tool.uv.build-backend]
+module-root = ""
+source-exclude = [
+    "tests",
+    "*.tests",
+]
+wheel-exclude = [
+    "tests",
+    "*.tests",
+]
 
-[tool.isort]
-line_length = 120
-multi_line_output = 3
-include_trailing_comma = true
-lines_after_imports = 2
-force_grid_wrap = 3
-forced_separate = ["callisto"]
-add_imports = "from __future__ import annotations"
+[build-system]
+requires = ["uv_build>=0.9.26,<0.12.0"]
+build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 addopts = """
@@ -59,7 +69,7 @@ addopts = """
 """
 
 [tool.mypy]
-python_version = 3.12
+python_version = 3.14
 warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
@@ -76,6 +86,20 @@ strict_equality = true
 warn_no_return = false
 warn_return_any = false
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.ruff]
+line-length = 120
+target-version = 'py314'
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+split-on-trailing-comma = true
+lines-after-imports = 2
+forced-separate = ["callisto"]
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+]
