@@ -3,13 +3,13 @@ variables:
   # Instruct Docker not to start over TLS.
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
-  DIND_IMAGE: docker:29.3.1-dind
+  DIND_IMAGE: docker:29.7.1-dind
 
-  UV_VERSION: 0.11.3
-  PYTHON_IMAGE: python:3.14.3-alpine3.23
+  UV_VERSION: 0.12.2
+  PYTHON_IMAGE: python:3.14.7-alpine3.24
 
-  KIND_VERSION: v0.31.0
-  KUBECTL_VERSION: v1.35.3
+  KIND_VERSION: v0.32.0
+  KUBECTL_VERSION: v1.36.3
 
 workflow:
   rules:
