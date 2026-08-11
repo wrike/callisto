@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.1] - 2026-08-07
+
+- dependencies have been updated to the latest versions
+
 ## [1.4.0] - 2026-04-06
 
 - migrate from poetry to uv
