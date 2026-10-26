@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.2] - 2026-10-26
+
+- dependencies have been updated to the latest versions (aiohttp, certifi and python image CVE fixes)
+
 ## [1.4.1] - 2026-08-07
 
 - dependencies have been updated to the latest versions
